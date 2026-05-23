@@ -543,11 +543,11 @@ function showResult() {
     document.getElementById('bE').style.width=(E/10*100)+'%';
   },200);
 
-  document.getElementById('sA').textContent=A+'점';
-  document.getElementById('sB').textContent=B+'점';
-  document.getElementById('sC').textContent=C+'점';
-  document.getElementById('sD').textContent=D+'점';
-  document.getElementById('sE').textContent=E+'점';
+  document.getElementById('sA').textContent=(A/10*100).toFixed(0)+'%';
+  document.getElementById('sB').textContent=(B/10*100).toFixed(0)+'%';
+  document.getElementById('sC').textContent=(C/10*100).toFixed(0)+'%';
+  document.getElementById('sD').textContent=(D/10*100).toFixed(0)+'%';
+  document.getElementById('sE').textContent=(E/10*100).toFixed(0)+'%';
   document.getElementById('totalNum').innerHTML=total+'<small> / 100점</small>';
 
   const ib=document.getElementById('interpBox');
@@ -559,8 +559,9 @@ function showResult() {
   document.getElementById('s3box').innerHTML='<strong>조절초점 (설문3)</strong>예방 평균 '+prev.toFixed(2)+' / 향상 평균 '+promo.toFixed(2)+' / 차이 '+diff.toFixed(2)+' → <span style="color:var(--mint);font-weight:600">'+s3type+'</span>';
   document.getElementById('typeBox').textContent='완벽주의 유형: '+typeName;
 
+  const pA=(A/10*100).toFixed(0), pB=(B/10*100).toFixed(0), pC=(C/10*100).toFixed(0), pD=(D/10*100).toFixed(0), pE=(E/10*100).toFixed(0);
   const copyText=`[채점 결과]
-실수에 대한 염려: ${A}점 / 정리 정돈 습관: ${B}점 / 행동에 대한 의심: ${C}점 / 부모의 높은 기대: ${D}점 / 높은 성취 기준: ${E}점
+실수에 대한 염려: ${A}점(${pA}%) / 정리 정돈 습관: ${B}점(${pB}%) / 행동에 대한 의심: ${C}점(${pC}%) / 부모의 높은 기대: ${D}점(${pD}%) / 높은 성취 기준: ${E}점(${pE}%)
 완벽주의 총점: ${total}점
 자기평가소재: ${s2type} (합산 ${s2total}점)
 조절초점: ${s3type} (차이값 ${diff.toFixed(2)})
