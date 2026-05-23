@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>완벽주의 유형 채점기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+:root {
+  --teal: #028090;
+  --mint: #02C39A;
+  --navy: #023E58;
+  --white: #FFFFFF;
+  --accent: #F26419;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--navy);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  color: var(--white);
+}
+
+.screen { display:none; width:100%; max-width:560px; animation: fadeIn .4s ease; }
+.screen.active { display:flex; flex-direction:column; align-items:center; }
+
+@keyframes fadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── 인트로 화면 ── */
+.intro-logo { font-size:48px; margin-bottom:16px; }
+.intro-title { font-size:22px; font-weight:700; margin-bottom:8px; text-align:center; }
+.intro-sub { font-size:14px; color:rgba(255,255,255,.5); text-align:center; line-height:1.7; margin-bottom:32px; font-weight:300; }
+
+/* ── 진행 바 ── */
+.progress-wrap { width:100%; margin-bottom:28px; }
+.progress-info { display:flex; justify-content:space-between; font-size:12px; color:rgba(255,255,255,.4); margin-bottom:8px; }
+.progress-bar-bg { width:100%; height:4px; background:rgba(255,255,255,.1); border-radius:2px; }
+.progress-bar-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--teal),var(--mint)); transition:width .4s ease; }
+
+/* ── 섹션 레이블 ── */
+.section-label {
+  font-size:11px; font-weight:700; color:var(--mint); letter-spacing:1.5px;
+  text-transform:uppercase; margin-bottom:20px; text-align:center;
+}
+
+/* ── 문항 카드 ── */
+.q-card {
+  width:100%;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;
+  padding:32px 28px;
+  margin-bottom:24px;
+}
+.q-number { font-size:11px; color:rgba(255,255,255,.35); margin-bottom:10px; letter-spacing:.5px; }
+.q-text { font-size:17px; font-weight:500; line-height:1.65; text-align:center; color:var(--white); min-height:56px; display:flex; align-items:center; justify-content:center; }
+
+/* ── 척도 버튼 ── */
+.scale-row {
+  display:flex; gap:8px; justify-content:center; flex-wrap:wrap;
+  margin-top:28px;
+}
+.scale-labels { display:flex; justify-content:space-between; margin-top:10px; }
+.scale-labels span { font-size:10px; color:rgba(255,255,255,.3); }
+
+.scale-btn {
+  width:48px; height:48px;
+  background:rgba(255,255,255,.07);
+  border:1.5px solid rgba(255,255,255,.15);
+  border-radius:12px;
+  color:rgba(255,255,255,.7);
+  font-size:15px; font-weight:700;
+  cursor:pointer;
+  transition:all .18s;
+  font-family:'Noto Sans KR',sans-serif;
+}
+.scale-btn:hover { background:rgba(2,195,154,.15); border-color:var(--mint); color:var(--white); }
+.scale-btn.selected { background:var(--teal); border-color:var(--mint); color:var(--white); box-shadow:0 0 0 3px rgba(2,195,154,.2); }
+
+/* 9점 척도는 버튼 작게 */
+.scale-row.nine .scale-btn { width:40px; height:40px; font-size:13px; border-radius:10px; }
+
+/* ── 뒤로/다음 버튼 ── */
+.nav-row { display:flex; gap:10px; width:100%; margin-top:4px; }
+.btn-back {
+  padding:14px 22px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;
+  color:rgba(255,255,255,.55);
+  font-size:14px; font-family:'Noto Sans KR',sans-serif;
+  cursor:pointer; transition:all .2s;
+}
+.btn-back:hover { color:var(--white); background:rgba(255,255,255,.12); }
+.btn-next {
+  flex:1; padding:15px;
+  background:linear-gradient(135deg,var(--teal),var(--mint));
+  border:none; border-radius:12px;
+  color:var(--white); font-size:15px; font-weight:700;
+  font-family:'Noto Sans KR',sans-serif;
+  cursor:pointer; transition:all .25s; opacity:.4; pointer-events:none;
+}
+.btn-next.ready { opacity:1; pointer-events:auto; }
+.btn-next.ready:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(2,195,154,.3); }
+
+/* ── 시작 버튼 ── */
+.btn-start {
+  width:100%; padding:17px;
+  background:linear-gradient(135deg,var(--teal),var(--mint));
+  border:none; border-radius:14px;
+  color:var(--white); font-size:16px; font-weight:700;
+  font-family:'Noto Sans KR',sans-serif;
+  cursor:pointer; transition:all .3s;
+}
+.btn-start:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(2,195,154,.3); }
+
+/* ── 결과 화면 ── */
+.result-header { font-size:15px; font-weight:700; color:var(--mint); margin-bottom:18px; text-align:center; letter-spacing:.5px; }
+
+.profile-row {
+  display:grid; grid-template-columns:130px 1fr 42px;
+  align-items:center; gap:10px; margin-bottom:12px; width:100%;
+}
+.p-label { font-size:12px; color:rgba(255,255,255,.6); }
+.p-bar-bg { height:8px; background:rgba(255,255,255,.08); border-radius:4px; overflow:hidden; }
+.p-bar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--teal),var(--mint)); transition:width .8s cubic-bezier(.16,1,.3,1); width:0%; }
+.p-score { font-size:13px; color:var(--mint); font-weight:700; text-align:right; }
+
+.total-box {
+  width:100%; margin-top:16px; padding:15px 18px;
+  background:rgba(2,195,154,.1); border:1px solid rgba(2,195,154,.25); border-radius:12px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.total-label { font-size:13px; color:rgba(255,255,255,.65); }
+.total-num { font-size:28px; font-weight:700; color:var(--mint); }
+.total-num small { font-size:13px; color:rgba(255,255,255,.35); font-weight:300; }
+
+.interp {
+  width:100%; margin-top:10px; padding:13px 16px;
+  border-radius:10px; font-size:13px; line-height:1.75; font-weight:300;
+}
+.interp.A { background:rgba(100,116,139,.2); border-left:3px solid #94A3B8; color:rgba(255,255,255,.75); }
+.interp.B { background:rgba(2,128,144,.2); border-left:3px solid var(--teal); color:rgba(255,255,255,.85); }
+.interp.C { background:rgba(242,100,25,.15); border-left:3px solid var(--accent); color:rgba(255,255,255,.9); }
+
+.sub-box {
+  width:100%; margin-top:10px; padding:13px 16px;
+  background:rgba(255,255,255,.04); border-radius:10px;
+  font-size:12.5px; color:rgba(255,255,255,.55); line-height:1.7;
+}
+.sub-box strong { color:rgba(255,255,255,.75); display:block; margin-bottom:4px; font-size:11px; letter-spacing:.5px; text-transform:uppercase; }
+
+.type-box {
+  width:100%; margin-top:10px; padding:16px;
+  background:rgba(2,195,154,.1); border:1px solid rgba(2,195,154,.3); border-radius:12px;
+  text-align:center; font-size:16px; font-weight:700; color:var(--mint);
+}
+
+.copy-label { font-size:11px; color:rgba(255,255,255,.4); margin:18px 0 8px; letter-spacing:.5px; text-transform:uppercase; align-self:flex-start; }
+.copy-box {
+  width:100%; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.1);
+  border-radius:10px; padding:14px 16px;
+  font-family:monospace; font-size:12px; color:rgba(255,255,255,.6);
+  line-height:1.9; white-space:pre; overflow-x:auto; margin-bottom:10px;
+  cursor:text; user-select:all;
+}
+.copy-btn {
+  width:100%; padding:13px;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.15);
+  border-radius:10px; color:rgba(255,255,255,.75);
+  font-size:13px; font-family:'Noto Sans KR',sans-serif; font-weight:500;
+  cursor:pointer; transition:all .2s; margin-bottom:10px;
+}
+.copy-btn:hover { background:rgba(255,255,255,.12); color:var(--white); }
+.copy-btn.done { background:rgba(2,195,154,.15); border-color:var(--mint); color:var(--mint); }
+
+.btn-restart {
+  width:100%; padding:13px;
+  background:transparent; border:1px solid rgba(255,255,255,.15);
+  border-radius:10px; color:rgba(255,255,255,.45);
+  font-size:13px; font-family:'Noto Sans KR',sans-serif;
+  cursor:pointer; transition:all .2s;
+}
+.btn-restart:hover { color:var(--white); border-color:rgba(255,255,255,.3); }
+
+.guide-box {
+  width:100%; margin-top:10px; padding:14px 16px;
+  background:rgba(242,100,25,.1); border:1px solid rgba(242,100,25,.25);
+  border-radius:12px; font-size:13px; color:rgba(255,255,255,.7); line-height:1.7; font-weight:300;
+}
+.guide-box strong { color:#FDBA74; display:block; margin-bottom:4px; }
+
+@media(max-width:480px){
+  .q-card { padding:24px 18px; }
+  .q-text { font-size:15px; }
+  .scale-btn { width:42px; height:42px; }
+  .scale-row.nine .scale-btn { width:34px; height:34px; font-size:12px; }
+  .profile-row { grid-template-columns:100px 1fr 38px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 인트로 -->
+<div class="screen active" id="s-intro">
+  <div class="intro-logo">📊</div>
+  <div class="intro-title">완벽주의 유형 채점기</div>
+  <div class="intro-sub">
+    챗봇에서 설문을 완료했다면<br>여기서 응답값을 선택해 결과를 확인하세요.<br>
+    결과를 복사해서 챗봇에 붙여넣으면 코칭이 이어져요.
+  </div>
+  <button class="btn-start" onclick="goTo('s-survey')">시작하기</button>
+</div>
+
+<!-- 설문 화면 -->
+<div class="screen" id="s-survey">
+  <div class="progress-wrap">
+    <div class="progress-info">
+      <span id="prog-label">설문 1 / 3</span>
+      <span id="prog-count">1 / 24</span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-fill" style="width:4%"></div></div>
+  </div>
+
+  <div class="section-label" id="sec-label">설문 1 — 완벽주의 성향</div>
+
+  <div class="q-card">
+    <div class="q-number" id="q-number">문항 1 / 10</div>
+    <div class="q-text" id="q-text">문항 텍스트</div>
+    <div class="scale-row" id="scale-row"></div>
+    <div class="scale-labels" id="scale-labels"></div>
+  </div>
+
+  <div class="nav-row">
+    <button class="btn-back" id="btn-back" onclick="prevQ()">← 이전</button>
+    <button class="btn-next" id="btn-next" onclick="nextQ()">다음 →</button>
+  </div>
+</div>
+
+<!-- 결과 화면 -->
+<div class="screen" id="s-result">
+  <div class="result-header">📊 완벽주의 프로파일</div>
+
+  <div class="profile-row"><div class="p-label">실수에 대한 염려</div><div class="p-bar-bg"><div class="p-bar-fill" id="bA"></div></div><div class="p-score" id="sA"></div></div>
+  <div class="profile-row"><div class="p-label">정리 정돈 습관</div><div class="p-bar-bg"><div class="p-bar-fill" id="bB"></div></div><div class="p-score" id="sB"></div></div>
+  <div class="profile-row"><div class="p-label">행동에 대한 의심</div><div class="p-bar-bg"><div class="p-bar-fill" id="bC"></div></div><div class="p-score" id="sC"></div></div>
+  <div class="profile-row"><div class="p-label">부모의 높은 기대</div><div class="p-bar-bg"><div class="p-bar-fill" id="bD"></div></div><div class="p-score" id="sD"></div></div>
+  <div class="profile-row"><div class="p-label">높은 성취 기준</div><div class="p-bar-bg"><div class="p-bar-fill" id="bE"></div></div><div class="p-score" id="sE"></div></div>
+
+  <div class="total-box">
+    <div class="total-label">완벽주의 총점</div>
+    <div class="total-num" id="totalNum">—<small> / 100점</small></div>
+  </div>
+  <div class="interp" id="interpBox"></div>
+  <div class="sub-box" id="s2box"></div>
+  <div class="sub-box" id="s3box"></div>
+  <div class="type-box" id="typeBox"></div>
+
+  <div class="copy-label">챗봇에 붙여넣기용 텍스트</div>
+  <div class="copy-box" id="copyBox"></div>
+  <button class="copy-btn" id="copyBtn" onclick="doCopy()">📋 복사하기</button>
+  <div class="guide-box">
+    <strong>💬 이렇게 사용하세요</strong>
+    위 텍스트를 복사한 뒤 챗봇 입력창에 붙여넣기 하세요.<br>
+    챗봇이 결과를 바탕으로 유형에 맞는 코칭을 바로 시작해요.
+  </div>
+  <button class="btn-restart" onclick="restart()" style="margin-top:10px">처음부터 다시</button>
+</div>
+
+<script>
+// ── 문항 데이터
+const SURVEYS = [
+  {
+    label: '설문 1 — 완벽주의 성향', short: '설문 1 / 3',
+    scale: 5, minLabel: '전혀 그렇지 않다', maxLabel: '매우 그렇다',
+    questions: [
+      '다른 사람이 나보다 잘하면 실패자 같다',
+      '잘 해내지 않으면 존중받지 못할 것 같다',
+      '정리 정돈하는 사람이 되려 노력한다',
+      '정리 정돈은 나에게 중요하다',
+      '만족스럽게 해내려면 시간이 오래 걸린다',
+      '신중히 해도 제대로 안 됐다고 느낄 때가 많다',
+      '부모님이 나보다 더 큰 기대를 가지셨다',
+      '부모님은 모든 면에서 최고이길 바라셨다',
+      '아주 높은 목표를 가지고 있다',
+      '최고가 아니면 싫다'
+    ]
+  },
+  {
+    label: '설문 2 — 자기평가소재', short: '설문 2 / 3',
+    scale: 6, minLabel: '전혀 그렇지 않다', maxLabel: '매우 그렇다',
+    questions: [
+      '혼자 있을 때만 진정으로 편안하다',
+      '실패한 일은 남에게 말하지 않는다',
+      '외모에 대해 신경을 쓴다',
+      '남이 나를 어떻게 생각하는지 중요하다',
+      '남이 믿어주는지에 따라 실제 능력이 달라진다',
+      '남이 화나 있으면 긍정적으로 느끼기 어렵다',
+      '남의 긍정적 평가에 더 잘 수긍한다',
+      '남이 존중해줄 때 더 만족스럽다'
+    ]
+  },
+  {
+    label: '설문 3 — 조절초점', short: '설문 3 / 3',
+    scale: 9, minLabel: '전혀 그렇지 않다', maxLabel: '매우 그렇다',
+    questions: [
+      '나쁜 일을 겪는 나 자신을 종종 상상한다',
+      '책임과 의무를 다하지 못할까봐 걱정된다',
+      '부정적 사건 예방에 초점을 맞춘다',
+      '긍정적 결과를 이루는 것에 초점을 맞춘다',
+      '좋은 일을 누리는 나 자신을 종종 상상한다',
+      '이상적인 나의 모습에 도달하려 노력한다'
+    ]
+  }
+];
+
+// 전체 문항을 flat하게 펼치기
+const ALL_Q = [];
+SURVEYS.forEach((s, si) => {
+  s.questions.forEach((q, qi) => {
+    ALL_Q.push({ surveyIdx: si, qIdx: qi, text: q, scale: s.scale, label: s.label, short: s.short, total: s.questions.length });
+  });
+});
+
+const TOTAL_Q = ALL_Q.length; // 24
+let answers = new Array(TOTAL_Q).fill(null);
+let cur = 0;
+
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function renderQ() {
+  const q = ALL_Q[cur];
+  const localIdx = q.qIdx;
+
+  // 진행 바
+  document.getElementById('prog-label').textContent = q.short;
+  document.getElementById('prog-count').textContent = (cur+1) + ' / ' + TOTAL_Q;
+  document.getElementById('prog-fill').style.width = ((cur+1)/TOTAL_Q*100) + '%';
+  document.getElementById('sec-label').textContent = q.label;
+  document.getElementById('q-number').textContent = '문항 ' + (localIdx+1) + ' / ' + q.total;
+  document.getElementById('q-text').textContent = q.text;
+
+  // 척도 버튼
+  const row = document.getElementById('scale-row');
+  row.innerHTML = '';
+  row.className = 'scale-row' + (q.scale === 9 ? ' nine' : '');
+
+  for (let i = 1; i <= q.scale; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'scale-btn' + (answers[cur] === i ? ' selected' : '');
+    btn.textContent = i;
+    btn.onclick = () => selectAnswer(i);
+    row.appendChild(btn);
+  }
+
+  // 척도 레이블
+  const lbl = document.getElementById('scale-labels');
+  lbl.innerHTML = `<span>${ALL_Q[cur].scale === 9 ? '전혀 그렇지 않다' : '전혀 그렇지 않다'}</span><span>${ALL_Q[cur].scale === 9 ? '보통(5)' : ''}</span><span>매우 그렇다</span>`;
+
+  // 이전 버튼
+  document.getElementById('btn-back').style.display = cur === 0 ? 'none' : 'block';
+  // 다음 버튼
+  const next = document.getElementById('btn-next');
+  next.textContent = cur === TOTAL_Q - 1 ? '결과 보기' : '다음 →';
+  next.classList.toggle('ready', answers[cur] !== null);
+}
+
+function selectAnswer(val) {
+  answers[cur] = val;
+  document.querySelectorAll('.scale-btn').forEach((btn, i) => {
+    btn.classList.toggle('selected', i+1 === val);
+  });
+  document.getElementById('btn-next').classList.add('ready');
+  // 0.3초 후 자동으로 다음으로 (마지막 문항 제외)
+  if (cur < TOTAL_Q - 1) {
+    setTimeout(() => nextQ(), 300);
+  }
+}
+
+function nextQ() {
+  if (answers[cur] === null) return;
+  if (cur === TOTAL_Q - 1) { showResult(); return; }
+  cur++;
+  renderQ();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function prevQ() {
+  if (cur === 0) return;
+  cur--;
+  renderQ();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function showResult() {
+  // 설문1 채점
+  const s1 = answers.slice(0, 10);
+  const A = s1[0]+s1[1], B = s1[2]+s1[3], C = s1[4]+s1[5], D = s1[6]+s1[7], E = s1[8]+s1[9];
+  const raw = A+B+C+D+E;
+  const total = raw*2;
+
+  // 설문2 채점
+  const s2 = answers.slice(10, 18);
+  const s2total = s2.reduce((a,b)=>a+b,0);
+  const s2type = s2total > 32 ? '외부 평가소재' : '내부 평가소재';
+
+  // 설문3 채점
+  const s3 = answers.slice(18, 24);
+  const prev  = (s3[0]+s3[1]+s3[2])/3;
+  const promo = (s3[3]+s3[4]+s3[5])/3;
+  const diff  = promo - prev;
+  const s3type = diff > 0.67 ? '향상 초점' : '예방 초점';
+
+  // 유형
+  const typeMap = {
+    '외부 평가소재_향상 초점':'👁 눈치백단 인정추구형',
+    '내부 평가소재_향상 초점':'💪 강철멘탈 성장지향형',
+    '외부 평가소재_예방 초점':'⚡ 스릴추구 막판스퍼트형',
+    '내부 평가소재_예방 초점':'🛡 방탄조끼 안전지향형'
+  };
+  const typeName = typeMap[s2type+'_'+s3type];
+
+  goTo('s-result');
+
+  // 바 애니메이션
+  setTimeout(() => {
+    document.getElementById('bA').style.width = (A/10*100)+'%';
+    document.getElementById('bB').style.width = (B/10*100)+'%';
+    document.getElementById('bC').style.width = (C/10*100)+'%';
+    document.getElementById('bD').style.width = (D/10*100)+'%';
+    document.getElementById('bE').style.width = (E/10*100)+'%';
+  }, 200);
+
+  document.getElementById('sA').textContent = A+'점';
+  document.getElementById('sB').textContent = B+'점';
+  document.getElementById('sC').textContent = C+'점';
+  document.getElementById('sD').textContent = D+'점';
+  document.getElementById('sE').textContent = E+'점';
+  document.getElementById('totalNum').innerHTML = total+'<small> / 100점</small>';
+
+  const ib = document.getElementById('interpBox');
+  if (total<=62){ ib.className='interp A'; ib.textContent='완벽주의 성향이 비교적 낮은 편이에요. 다만 특정 영역에서만 높게 나타날 수 있으니, 위 5가지 항목을 함께 살펴보세요.'; }
+  else if (total<=80){ ib.className='interp B'; ib.textContent='완벽주의적인 성향이 있는 편이에요. 상황에 따라 기준이 올라가면 스트레스가 커질 수 있어, 목표와 회복 루틴을 함께 점검하는 것이 도움이 될 거예요.'; }
+  else { ib.className='interp C'; ib.textContent='완벽주의적인 성향이 뚜렷하게 나타나고 있어요. 기준이 높고 결과의 질과 타인의 평가에 민감한 편이라, 피로와 자기비난, 미루기와 결합될 수 있어요.'; }
+
+  document.getElementById('s2box').innerHTML =
+    '<strong>자기평가소재 (설문2)</strong>합산 '+s2total+'점 (기준 32점 초과=외부) → <span style="color:var(--mint);font-weight:600">'+s2type+'</span>';
+  document.getElementById('s3box').innerHTML =
+    '<strong>조절초점 (설문3)</strong>예방 평균 '+prev.toFixed(2)+' / 향상 평균 '+promo.toFixed(2)+' / 차이 '+diff.toFixed(2)+' → <span style="color:var(--mint);font-weight:600">'+s3type+'</span>';
+  document.getElementById('typeBox').textContent = '완벽주의 유형: '+typeName;
+
+  const copyText =
+`[채점 결과]
+실수에 대한 염려: ${A}점 / 정리 정돈 습관: ${B}점 / 행동에 대한 의심: ${C}점 / 부모의 높은 기대: ${D}점 / 높은 성취 기준: ${E}점
+완벽주의 총점: ${total}점
+자기평가소재: ${s2type} (합산 ${s2total}점)
+조절초점: ${s3type} (차이값 ${diff.toFixed(2)})
+완벽주의 유형: ${typeName}`;
+
+  document.getElementById('copyBox').textContent = copyText;
+}
+
+function doCopy() {
+  const text = document.getElementById('copyBox').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ 복사됐어요!';
+    btn.classList.add('done');
+    setTimeout(()=>{ btn.textContent='📋 복사하기'; btn.classList.remove('done'); }, 2000);
+  }).catch(() => {
+    const box = document.getElementById('copyBox');
+    const range = document.createRange();
+    range.selectNode(box);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+  });
+}
+
+function restart() {
+  answers = new Array(TOTAL_Q).fill(null);
+  cur = 0;
+  renderQ();
+  goTo('s-intro');
+}
+
+// 초기 렌더
+renderQ();
+</script>
+</body>
+</html>
